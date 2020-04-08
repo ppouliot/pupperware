@@ -1,0 +1,67 @@
+version: '3.7'
+services:
+  puppetboard:
+    hostname: puppetboard.${DOMAIN:-test}
+    image: puppet/puppetboard
+    environment:
+      - GRAPH_FACTS='architecture,puppetversion,osfamily'
+      - ENABLE_CATALOG=True
+    ports:
+      - 8000:8000
+    depends_on:
+      - postgres
+      - puppet
+      - puppetdb
+    dns_search: ${DOMAIN:-test}
+    networks:
+      default:
+        aliases:
+          - puppetboard.${DOMAIN:-test}
+  puppetexplorer:
+    hostname: puppetexplorer.${DOMAIN:-test}
+    image: puppet/puppetexplorer
+    ports:
+      - 8001:80
+    depends_on:
+      - postgres
+      - puppet
+      - puppetdb
+    read_only: true
+    networks:
+      default:
+        aliases:
+          - puppetexplorer.${DOMAIN:-test}
+  puppet-catalog-diff-viewer:
+    hostname: puppet-catalog-diff-viewer.${DOMAIN:-test}
+    image: camptocamp/puppet-catalog-diff-viewer
+    ports:
+      - 8002:80
+    depends_on:
+      - postgres
+      - puppet
+      - puppetdb
+    volumes:
+      - puppet-catalog-diff-viewer:/data
+    dns_search: ${DOMAIN:-test}
+    networks:
+      default:
+        aliases:
+          - puppet-catalog-diff-viewer.${DOMAIN:-test}
+  watchtower:
+    hostname: watchtower.${DOMAIN:-test}
+    image: containrrr/watchtower
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: watchtower puppet puppetdbpostgres puppetdb puppetboard puppetexplorer puppet-catalog-diff-viewer --interval 30
+    restart: unless-stopped
+    dns_search: ${DOMAIN:-test}
+    networks:
+      default:
+        aliases:
+          - watchtower.${DOMAIN:-test}
+volumes:
+  puppet-catalog-diff-viewer:
+networks:
+  default:
+    external:
+      name: pupperware_default
