@@ -2,17 +2,22 @@ version: '3.7'
 services:
   puppetboard:
     hostname: puppetboard.${DOMAIN:-test}
-    image: puppet/puppetboard
+    image: voxpupuli/puppetboard:latest
     environment:
-      - GRAPH_FACTS='architecture,puppetversion,osfamily'
+      - PUPPETDB_HOST=puppetdb
+      - PUPPETDB_PORT=8081
+      - INVENTORY_FACTS='Hostname,fqdn, IP Address,ipaddresss'      
       - ENABLE_CATALOG=True
+      - GRAPH_FACTS='architecture,puppetversion,osfamily'
     ports:
-      - 8000:8000
+      - 9080:80
     depends_on:
       - postgres
       - puppet
       - puppetdb
     dns_search: ${DOMAIN:-test}
+    volumes:
+      - puppetserver-config:/etc/puppetlabs/puppet/
     networks:
       default:
         aliases:
@@ -47,20 +52,5 @@ services:
       default:
         aliases:
           - puppet-catalog-diff-viewer.${DOMAIN:-test}
-  watchtower:
-    hostname: watchtower.${DOMAIN:-test}
-    image: containrrr/watchtower
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-    restart: unless-stopped
-    dns_search: ${DOMAIN:-test}
-    networks:
-      default:
-        aliases:
-          - watchtower.${DOMAIN:-test}
 volumes:
   puppet-catalog-diff-viewer:
-networks:
-  default:
-    external:
-      name: pupperware_default
